@@ -1,4 +1,5 @@
 #this is how commmenting is done in gitignore file
 .DS_Store
+.env
 node_modules/ 
 # *.txt::  this will ignore all the text file from commiting

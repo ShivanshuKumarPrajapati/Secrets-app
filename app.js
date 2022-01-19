@@ -1,4 +1,5 @@
 //jshint esversion:6
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require('ejs');
@@ -7,13 +8,13 @@ const encrypt = require("mongoose-encryption");
 
 const app = express();
 
+console.log(process.env.API_KEY);
 
 app.use(express.static("static"));
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
-
+const secret = process.env.SECRET;
 mongoose.connect("mongodb://localhost:27017/userDB");
 
 const userSchema = new mongoose.Schema( {
@@ -21,7 +22,7 @@ const userSchema = new mongoose.Schema( {
   password: String
 });
 
-const secret = "ThisisourlittleSecret.";
+// MOVED THT SECRET KEY TO THE Env file
 // userSchema.plugin(encrypt, { secret: secret });//this line of code encrypt whole database
 userSchema.plugin(encrypt, { secret: secret, encryptedFields: ["password"] });
 
