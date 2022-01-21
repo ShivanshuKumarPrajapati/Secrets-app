@@ -4,17 +4,20 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const md5 = require('md5');
-//hash fxn always gen the same hashTeXt for the same input set
+const  bcrypt=require("bcrypt")
+
+const saltRounds = 10;//defining no. of salt round for the password
+//increasing the no. of saltround also increases working of our pc to gen hash
+
 const app = express();
 
-console.log(process.env.API_KEY);
+
 
 app.use(express.static("static"));
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const secret = process.env.SECRET;
+
 mongoose.connect("mongodb://localhost:27017/userDB");
 
 const userSchema = new mongoose.Schema( {
@@ -45,11 +48,13 @@ app.listen(3000, function () {
 
 
 app.post("/register", function (req, res) {
+
+  bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
+
   const newUser = new User({
     email: req.body.username,
-    password: md5(req.body.password)
+    password: hash
   });
-
   newUser.save(function (err) {
     if (err)
       console.log(err);
@@ -59,9 +64,13 @@ app.post("/register", function (req, res) {
   })
 });
 
+  });
+
+
 app.post("/login", function (req, res) {
   const username = req.body.username;
-  const password = md5(req.body.password);
+  const password = req.body.password;
+
 
 
   User.findOne({ email: username }, function (err, foundUser) {
@@ -69,9 +78,10 @@ app.post("/login", function (req, res) {
       console.log(err);
     else {
       if (foundUser) {
-        if (foundUser.password === password) {
+        bcrypt.compare(password,foundUser.password, function (err, result) {
+        if(result == true)
           res.render("secrets");
-        }
+});
       }
     }
   })
