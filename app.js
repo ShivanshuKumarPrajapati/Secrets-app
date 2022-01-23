@@ -33,7 +33,9 @@ mongoose.connect("mongodb://localhost:27017/userDB");
 
 const userSchema = new mongoose.Schema( {
   email: String,
-  password: String
+  password: String,
+  googleId: String
+  
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -45,8 +47,20 @@ const User = new mongoose.model("User", userSchema);
 
 passport.use(User.createStrategy());
 
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+//this is only with local startegy to serial. and deserial. data
+// passport.serializeUser(User.serializeUser());
+// passport.deserializeUser(User.deserializeUser());
+
+//this is universal code of serial. and deserial.
+passport.serializeUser(function (user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser(function (id, done) {
+  User.findById(id, function (err, user) {
+    done(err, user);
+  });
+});
 
 passport.use(
   new GoogleStrategy(
@@ -56,9 +70,10 @@ passport.use(
       callbackURL: "http://localhost:3000/auth/google/secrets",
       //to overcome google+ api depreciation we r using this line of code otherwise no need
       //this will fetch userprofile from other endpoint other than using google+
-      userProfileURL:"https://www.googleapis.com/oauth/2/v3/userinfo"
+      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
     },
     function (accessToken, refreshToken, profile, cb) {
+      console.log(profile);
       //profile contains the email,userid and other contents in which we r interested too
       User.findOrCreate({ googleId: profile.id }, function (err, user) {
         return cb(err, user);
@@ -71,10 +86,25 @@ app.get("/", function (req, res) {
     res.render("home")
 });
 
-app.get("/auth/google", function (req, res) {
+app.get("/auth/google",
   //here google say the stratgery which is used by passport for authentication 
-  passport.authenticate("google", { scope: ['profile'] })
-});
+  passport.authenticate("google", { scope: ["profile"] })
+);
+
+//DON'T USE THIS AS IT WON'T REDIRECT TO GOOGLE SIGNUP
+
+// app.get("/auth/google", function (req, res) {
+//   passport.authenticate("google", { scope: ['profile'] })
+// });
+
+//this will redirect the google to after authen.
+app.get("/auth/google/secrets",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  function (req, res) {
+    // Successful authentication, redirect home.
+    res.redirect("/secrets");
+  }
+);
 
 app.get("/login", function (req, res) {
   res.render("login");
@@ -97,7 +127,8 @@ app.get("/secrets", function (req, res) {
 app.get("/logout", function (req, res) {
   req.logout();
   res.redirect("/");
-})
+});
+
 
 app.post("/register", function (req, res) {
 
